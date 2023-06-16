@@ -6,6 +6,8 @@ import io.restassured.response.Response;
 import org.junit.Assert;
 import org.junit.Test;
 import spec.Specifications;
+import spec.TestExecutionObserver;
+import spec.TestObserver;
 
 import java.util.Comparator;
 import java.util.List;
@@ -17,6 +19,7 @@ import static org.hamcrest.Matchers.notNullValue;
 public class api_test {
 
     private final static String URL = "https://swapi.dev/api/";
+    private TestObserver observer = new TestExecutionObserver();
 
     public List<starships> getStarships(){
         Specifications.installSpecification(Specifications.requestSpec(URL), Specifications.responseSpecUnique(200));
@@ -28,7 +31,8 @@ public class api_test {
     }
 
     @Test
-    public void checkStarship(){
+    public void verifyStarshipDetails(){
+        observer.onTestStarted("verifyStarshipDetails");
         Specifications.installSpecification(Specifications.requestSpec(URL), Specifications.responseSpecUnique(200));
         Response response = given()
                 .when()
@@ -42,10 +46,12 @@ public class api_test {
         String StarShipName = "Death Star";
         String name = jsonPath.get("name");
         Assert.assertEquals(name, StarShipName);
+        observer.onTestFinished("verifyStarshipDetails", true);
     }
 
     @Test
     public void sortHighToLow(){
+        observer.onTestStarted("sortHighToLow");
         List<starships> highToLow = getStarships().stream().sorted(new Comparator<starships>() {
                     @Override
                     public int compare(starships o1, starships o2) {
@@ -54,10 +60,12 @@ public class api_test {
                 }).collect(Collectors.toList());
         List<starships> top5 = highToLow.stream().limit(5).collect(Collectors.toList());
         Assert.assertEquals(top5.get(0).getCrew(), "5400");
+        observer.onTestFinished("sortHighToLow", true);
     }
 
     @Test
     public void sortLowToHigh(){
+        observer.onTestStarted("sortLowToHigh");
         List<starships> highToLow = getStarships().stream().sorted(new Comparator<starships>() {
             @Override
             public int compare(starships o1, starships o2) {
@@ -66,11 +74,14 @@ public class api_test {
         }).collect(Collectors.toList());
         List<starships> top5 = highToLow.stream().limit(5).collect(Collectors.toList());
         Assert.assertEquals(top5.get(0).getCrew(), "1");
+        observer.onTestFinished("sortLowToHigh", true);
     }
 
     @Test
     public void checkURL(){
+        observer.onTestStarted("checkURL");
         List<starships> urlStarships = getStarships().stream().filter(x->x.getUrl().contains("starships/")).collect(Collectors.toList());
         Assert.assertTrue(urlStarships.stream().allMatch(x->x.getUrl().contains("starships/")));
+        observer.onTestFinished("checkURL", true);
     }
 }
