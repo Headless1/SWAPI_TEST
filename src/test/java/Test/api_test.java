@@ -1,13 +1,16 @@
 package Test;
 
+import com.aventstack.extentreports.ExtentReports;
+import com.aventstack.extentreports.ExtentTest;
+import com.aventstack.extentreports.Status;
+import com.aventstack.extentreports.reporter.ExtentHtmlReporter;
 import data.starships;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import spec.Specifications;
-import spec.TestExecutionObserver;
-import spec.TestObserver;
 
 import java.util.Comparator;
 import java.util.List;
@@ -19,7 +22,38 @@ import static org.hamcrest.Matchers.notNullValue;
 public class api_test {
 
     private final static String URL = "https://swapi.dev/api/";
-    private TestObserver observer = new TestExecutionObserver();
+    private static ExtentReports extent;
+    private static ExtentTest testVerifyStarshipDetails;
+    private static ExtentTest testSortHighToLow;
+    private static ExtentTest testSortLowToHigh;
+    private static ExtentTest testCheckURL;
+
+    @BeforeClass
+    public static void setupExtentReports(){
+        ExtentHtmlReporter htmlReporter = new ExtentHtmlReporter("test-output/ExtentReport.html");
+        extent = new ExtentReports();
+        extent.attachReporter(htmlReporter);
+    }
+
+    @Test
+    public void runTests(){
+        createExtentTests();
+
+        verifyStarshipDetails();
+        sortHighToLow();
+        sortLowToHigh();
+        checkURL();
+
+        extent.flush();
+    }
+
+    private void createExtentTests(){
+        testVerifyStarshipDetails = extent.createTest("Verify Starship Details");
+        testSortHighToLow = extent.createTest("Sort High to Low");
+        testSortLowToHigh = extent.createTest("Sort Low to High");
+        testCheckURL = extent.createTest("Check URL");
+    }
+
 
     public List<starships> getStarships(){
         Specifications.installSpecification(Specifications.requestSpec(URL), Specifications.responseSpecUnique(200));
@@ -30,9 +64,7 @@ public class api_test {
                 .extract().jsonPath().getList("results", starships.class);
     }
 
-    @Test
     public void verifyStarshipDetails(){
-        observer.onTestStarted("verifyStarshipDetails");
         Specifications.installSpecification(Specifications.requestSpec(URL), Specifications.responseSpecUnique(200));
         Response response = given()
                 .when()
@@ -46,12 +78,10 @@ public class api_test {
         String StarShipName = "Death Star";
         String name = jsonPath.get("name");
         Assert.assertEquals(name, StarShipName);
-        observer.onTestFinished("verifyStarshipDetails", true);
+        testVerifyStarshipDetails.log(Status.INFO, "Verifying Starship Name");
     }
 
-    @Test
     public void sortHighToLow(){
-        observer.onTestStarted("sortHighToLow");
         List<starships> highToLow = getStarships().stream().sorted(new Comparator<starships>() {
                     @Override
                     public int compare(starships o1, starships o2) {
@@ -60,12 +90,10 @@ public class api_test {
                 }).collect(Collectors.toList());
         List<starships> top5 = highToLow.stream().limit(5).collect(Collectors.toList());
         Assert.assertEquals(top5.get(0).getCrew(), "5400");
-        observer.onTestFinished("sortHighToLow", true);
+        testSortHighToLow.log(Status.INFO, "Sorting High to Low");
     }
 
-    @Test
     public void sortLowToHigh(){
-        observer.onTestStarted("sortLowToHigh");
         List<starships> highToLow = getStarships().stream().sorted(new Comparator<starships>() {
             @Override
             public int compare(starships o1, starships o2) {
@@ -74,14 +102,12 @@ public class api_test {
         }).collect(Collectors.toList());
         List<starships> top5 = highToLow.stream().limit(5).collect(Collectors.toList());
         Assert.assertEquals(top5.get(0).getCrew(), "1");
-        observer.onTestFinished("sortLowToHigh", true);
+        testSortLowToHigh.log(Status.INFO, "Sorting Low to High");
     }
 
-    @Test
     public void checkURL(){
-        observer.onTestStarted("checkURL");
         List<starships> urlStarships = getStarships().stream().filter(x->x.getUrl().contains("starships/")).collect(Collectors.toList());
         Assert.assertTrue(urlStarships.stream().allMatch(x->x.getUrl().contains("starships/")));
-        observer.onTestFinished("checkURL", true);
+        testCheckURL.log(Status.INFO, "Checking URL");
     }
 }
